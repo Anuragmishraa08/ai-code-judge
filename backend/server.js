@@ -1,6 +1,5 @@
 const express = require('express');
 const dotenv = require('dotenv');
-const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
@@ -17,15 +16,24 @@ connectDB();
 
 const app = express();
 
-const corsOptions = {
-  origin: 'https://ai-code-judge.vercel.app',
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-};
+app.use((req, res, next) => {
+  const allowedOrigin = 'https://ai-code-judge.vercel.app';
+  const origin = req.headers.origin;
 
-app.use(cors(corsOptions));
-app.options(/.*/, cors(corsOptions));
+  if (origin === allowedOrigin) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
+
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(204);
+  }
+
+  next();
+});
 
 app.use(helmet());
 app.use(express.json({ limit: '10mb' }));
