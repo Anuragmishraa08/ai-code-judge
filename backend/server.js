@@ -1,4 +1,3 @@
-const path = require('path');
 const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
@@ -20,13 +19,26 @@ const app = express();
 
 app.use(helmet());
 
-const corsOptions = {
-  origin: process.env.NODE_ENV === 'development' 
-    ? true 
-    : (process.env.CLIENT_URL || 'http://localhost:3000'),
-  credentials: true
-};
-app.use(cors(corsOptions));
+const allowedOrigins = [
+  'http://localhost:3000',
+  'https://ai-code-judge.vercel.app',
+];
+
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error(`CORS blocked for origin: ${origin}`));
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  })
+);
+
+app.options('*', cors());
 
 app.use(express.json({ limit: '10mb' }));
 app.use(morgan('dev'));
@@ -35,8 +47,9 @@ const apiLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 120,
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
 });
+
 app.use('/api/', apiLimiter);
 
 app.get('/', (req, res) => {
@@ -53,6 +66,7 @@ app.use(notFound);
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
+
 app.listen(PORT, () => {
   console.log(`Backend running in ${process.env.NODE_ENV} mode on port ${PORT}`);
 });
